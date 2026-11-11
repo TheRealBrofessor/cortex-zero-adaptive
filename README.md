@@ -6,7 +6,7 @@ Implements the full adaptive loop: **OBSERVE → REASON → SELECT → EXECUTE �
 
 ## Overview
 
-This plugin extends the Cortex Zero Engine with adaptive intelligence. The local 1B model (llama-3.2-1b-cz-router) selects actions from a structured catalog of permitted browser automation tools, encounters failures, analyzes them, and autonomously chooses alternative approaches — all within authorized engagement boundaries.
+This plugin provides Cortex Zero adaptive intelligence as a native Hermes plugin. The local 1B model (llama-3.2-1b-cz-router) selects actions from a structured catalog of permitted browser automation tools, encounters failures, analyzes them, and autonomously chooses alternative approaches — all within configured domain and operation boundaries.
 
 ## Architecture
 
@@ -20,17 +20,17 @@ This plugin extends the Cortex Zero Engine with adaptive intelligence. The local
 │  │   ├── Analyzes failures                                     │
 │  │   └── Plans adaptations                                     │
 │  ├── Action Catalog (baf-navigate, baf-click, baf-extract,     │
-│  │                    baf-evaluate, baf-wait)                  │
+│  │                    baf-wait)                                │
 │  ├── Policy Enforcement (domain allowlist, operation allowlist) │
 │  ├── Execution State Persistence                               │
 │  ├── Failure Classification                                    │
 │  └── Independent Verification                                  │
 ├─────────────────────────────────────────────────────────────────┤
-│  Reuses Existing Infrastructure:                                │
-│  ├── Cortex Zero Engine (/home/professor/cortexzero-engine)    │
+│  Local Infrastructure:                                          │
+│  ├── Self-contained adaptive runner and evidence store          │
 │  ├── BAF Runner (BrowserAutomationFramework HTTP API)          │
 │  ├── BAF Server (AutomationServer on port 9999)                │
-│  └── Existing Packs (browser-demo, cve-2026, web-hacking, etc.)│
+│  └── Local evidence and policy state                            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -38,10 +38,10 @@ This plugin extends the Cortex Zero Engine with adaptive intelligence. The local
 
 | Tool | Description |
 |------|-------------|
-| `cz_adaptive.run` | Run an adaptive browser automation session |
-| `cz_adaptive.status` | Get status of current/last session |
-| `cz_adaptive.demo` | Run predefined failure recovery demonstrations |
-| `cz_adaptive.config` | Get engine configuration |
+| `cz_adaptive_run` | Run an adaptive browser automation session |
+| `cz_adaptive_status` | Get status of current/last session |
+| `cz_adaptive_demo` | Run predefined failure recovery demonstrations |
+| `cz_adaptive_config` | Get engine configuration |
 
 ## Quick Start
 
@@ -79,8 +79,6 @@ cz_adaptive_run({
             "expected": "Get page heading"
         }
     ],
-    "allowed_domains": ["example.com"],
-    "allowed_operations": ["navigate", "extract"]
 })
 ```
 
@@ -109,13 +107,14 @@ Three controlled failure scenarios:
 ## Policy Enforcement
 
 - **Domain Allowlist**: Only permitted domains can be navigated
-- **Operation Allowlist**: Only permitted BAF operations (navigate, click, extract, evaluate, wait)
+- **Operation Allowlist**: Only permitted BAF operations (navigate, click, extract, wait, screenshot) by default
+- **JavaScript evaluation**: `baf-evaluate` is excluded from the default allowlist and requires explicit user configuration
 - **Scope Boundaries**: Model cannot widen engagement scope on failure
 - **Consent Gates**: Actions require explicit confirmation (handled by CZE)
 
 ## Evidence & Audit
 
-All sessions logged to `~/.hermes/plugins/cortex-zero-adaptive/evidence/session_<id>.jsonl`:
+All sessions logged to `$HERMES_HOME/plugin-data/cortex-zero-adaptive/evidence/session_<id>.jsonl`:
 - Step execution with inputs/outputs
 - Failure classifications
 - Model analysis and adaptation decisions
@@ -158,14 +157,7 @@ cortex-zero-adaptive/
 
 ## Integration with Cortex Zero
 
-This plugin **reuses** (does not duplicate):
-- Cortex Zero Engine deterministic routing
-- BAF runner for real browser automation
-- Existing playbook packs (cve-2026, web-hacking, etc.)
-- Evidence logging infrastructure
-- Safety/consent gates
-
-The adaptive layer sits **above** the deterministic engine, using the 1B model only for:
+The plugin keeps the adaptive loop and BAF transport self-contained so it installs without a machine-specific checkout. The 1B model is limited to:
 - Action selection from catalog
 - Failure analysis
 - Adaptation planning
@@ -184,7 +176,7 @@ Key Differentiators:
 - ✅ Real BAF browser automation (not simulated)
 - ✅ Policy-bounded recovery (model cannot escape allowlists)
 - ✅ Independent verification (not model self-report)
-- ✅ Reuses existing Cortex Zero + BAF infrastructure
+- ✅ Installs without a machine-specific Cortex Zero checkout
 
 ## License
 

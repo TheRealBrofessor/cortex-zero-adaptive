@@ -3,7 +3,29 @@ version: 0.1.0
 description: Cortex Zero Adaptive — local 1B model directed adaptive browser automation with failure recovery (OBSERVE→REASON→SELECT→EXECUTE→ANALYZE→ADAPT→VERIFY)
 author: Professor
 provides_tools:
-  - cz_adaptive.run
-  - cz_adaptive.status
-  - cz_adaptive.demo
-  - cz_adaptive.config
+  - cz_adaptive_run
+  - cz_adaptive_status
+  - cz_adaptive_demo
+  - cz_adaptive_config
+config_schema:
+  router.model:
+    type: string
+    default: llama-3.2-1b-cz-router:latest
+  ollama.url:
+    type: string
+    default: http://127.0.0.1:11434
+  allowed.domains:
+    type: array
+    default: []
+  allowed.operations:
+    type: array
+    default: [navigate, click, extract, wait, screenshot]
+  max.steps:
+    type: integer
+    default: 10
+  max.retries:
+    type: integer
+    default: 2
+  step.timeout:
+    type: number
+    default: 30.0

@@ -231,7 +231,7 @@ chromium-browser --load-extension=/home/professor/baf/BrowserAutomationFramework
   --no-first-run --no-default-browser-check \
   --disable-extensions-except=/home/professor/baf/BrowserAutomationFramework/ChromeExtension \
   --user-data-dir=/tmp/chrome-baf-profile \
-  --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 \
+  --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 \
   http://127.0.0.1:8765/
 
 # Inject bridge via CDP (get tabId from service worker first)

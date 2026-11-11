@@ -18,18 +18,9 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
-import sys
+from hermes_constants import get_hermes_home
 
-CZ_ROOT = Path("/home/professor/cortexzero-engine")
-if str(CZ_ROOT) not in sys.path:
-    sys.path.insert(0, str(CZ_ROOT))
-
-from czengine.engine import Engine, Turn
-from czengine.library import Branch
-from czengine.runners import LocalRunner, RawResult
-from czengine.runners.baf_runner import get_baf_runner
-from czengine.runners.mock_baf_runner import get_mock_baf_runner
-from czengine.model import OllamaRouterModel
+from runner import RawResult, get_baf_runner, get_mock_baf_runner
 
 
 class StepStatus(Enum):
@@ -101,7 +92,7 @@ class AdaptiveEngine:
         max_steps: int = 10,
         max_retries_per_step: int = 2,
         step_timeout: float = 30.0,
-        evidence_dir: Path = Path("/home/professor/.hermes/plugins/cortex-zero-adaptive/evidence"),
+        evidence_dir: Path | None = None,
         allowed_domains: list[str] = None,
         allowed_operations: list[str] = None,
     ):
@@ -111,22 +102,14 @@ class AdaptiveEngine:
         self.max_steps = max_steps
         self.max_retries_per_step = max_retries_per_step
         self.step_timeout = step_timeout
-        self.evidence_dir = evidence_dir
+        self.evidence_dir = evidence_dir or (get_hermes_home() / "plugin-data" / "cortex-zero-adaptive" / "evidence")
         self.evidence_dir.mkdir(parents=True, exist_ok=True)
         
         # Policy
         self.allowed_domains = [d.lower().strip() for d in (allowed_domains or []) if d.strip()]
         self.allowed_operations = set(allowed_operations or [
-            "navigate", "click", "extract", "evaluate", "wait", "screenshot"
+            "navigate", "click", "extract", "wait", "screenshot"
         ])
-        
-        # Initialize CZE engine for routing and execution
-        pack_dirs = [CZ_ROOT / "packs" / d for d in sorted((CZ_ROOT / "packs").iterdir())
-                     if (d / "pack.yaml").is_file()]
-        self.cze_engine = Engine.from_dirs(pack_dirs)
-        
-        # Initialize 1B router model for adaptive decisions
-        self.router_model = OllamaRouterModel(model_name, ollama_url)
         
         # Initialize BAF runner
         self.baf_runner = get_baf_runner() if not use_mock_baf else get_mock_baf_runner()

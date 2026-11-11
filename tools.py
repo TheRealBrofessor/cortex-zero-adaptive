@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import json
-import os
-import time
 from pathlib import Path
-from typing import Any
 import sys
 
 # Ensure cortex-zero-adaptive is in path
@@ -16,18 +13,32 @@ if str(PLUGIN_DIR) not in sys.path:
 
 from engine import AdaptiveEngine, get_adaptive_engine
 
+_CONFIG: dict = {}
+
+
+def configure(ctx) -> None:
+    """Snapshot plugin settings from Hermes; tool arguments cannot override them."""
+    global _CONFIG
+    keys = ("router.model", "ollama.url", "allowed.domains", "allowed.operations", "max.steps", "max.retries", "step.timeout")
+    _CONFIG = {key: ctx.get_config(key) for key in keys}
+
+
+def _setting(key: str, default):
+    value = _CONFIG.get(key, default)
+    return default if value is None else value
+
 
 def _engine(args: dict) -> AdaptiveEngine:
-    """Get adaptive engine with config from args."""
+    """Get adaptive engine from Hermes plugin settings, never model-supplied overrides."""
     return get_adaptive_engine(
-        model_name=args.get("model", "llama-3.2-1b-cz-router:latest"),
-        ollama_url=args.get("ollama_url", "http://127.0.0.1:11434"),
+        model_name=_setting("router.model", "llama-3.2-1b-cz-router:latest"),
+        ollama_url=_setting("ollama.url", "http://127.0.0.1:11434"),
         use_mock_baf=args.get("use_mock_baf", False),
-        max_steps=args.get("max_steps", 10),
-        max_retries_per_step=args.get("max_retries", 2),
-        step_timeout=args.get("step_timeout", 30.0),
-        allowed_domains=args.get("allowed_domains"),
-        allowed_operations=args.get("allowed_operations"),
+        max_steps=_setting("max.steps", 10),
+        max_retries_per_step=_setting("max.retries", 2),
+        step_timeout=_setting("step.timeout", 30.0),
+        allowed_domains=_setting("allowed.domains", []),
+        allowed_operations=_setting("allowed.operations", ["navigate", "click", "extract", "wait", "screenshot"]),
     )
 
 
@@ -38,8 +49,6 @@ def cz_adaptive_run(args: dict) -> str:
     Args:
         objective: The high-level objective (e.g., "extract flag from target page")
         initial_plan: Optional list of initial steps [{action, argv, description, expected}]
-        allowed_domains: Optional list of allowed domains
-        allowed_operations: Optional list of allowed operations
         use_mock_baf: Use mock BAF runner for testing
     """
     eng = _engine(args)
@@ -49,11 +58,6 @@ def cz_adaptive_run(args: dict) -> str:
         return json.dumps({"status": "error", "message": "objective is required"})
     
     initial_plan = args.get("initial_plan")
-    allowed_domains = args.get("allowed_domains")
-    
-    if allowed_domains:
-        eng.allowed_domains = [d.lower().strip() for d in allowed_domains if d.strip()]
-    
     session = eng.run_adaptive_loop(objective, initial_plan)
     report = eng.get_session_report()
     
@@ -85,7 +89,7 @@ def cz_adaptive_demo(args: dict) -> str:
     
     Demonstrates the 1B model encountering a failure, analyzing it, and adapting.
     """
-    from czengine.runners import RawResult
+    from runner import RawResult
     import time
     
     class DemoMockRunner:
@@ -94,11 +98,11 @@ def cz_adaptive_demo(args: dict) -> str:
             self.fail_on = fail_on or {}
             self.call_count = {}
             self.allowed_domains = []
-            self.allowed_operations = {"navigate", "click", "extract", "evaluate", "screenshot", "wait"}
+            self.allowed_operations = {"navigate", "click", "extract", "wait", "screenshot"}
             
         def set_policy(self, allowed_domains, allowed_operations):
             self.allowed_domains = [d.lower().strip() for d in (allowed_domains or []) if d.strip()]
-            self.allowed_operations = set(allowed_operations or ["navigate", "click", "extract", "evaluate", "screenshot", "wait"])
+            self.allowed_operations = set(allowed_operations or ["navigate", "click", "extract", "wait", "screenshot"])
         
         def _check_domain_allowed(self, url: str) -> bool:
             if not self.allowed_domains:
@@ -275,14 +279,14 @@ def cz_adaptive_config(args: dict) -> str:
     
     if action == "get":
         return json.dumps({
-            "model": "llama-3.2-1b-cz-router:latest",
-            "ollama_url": "http://127.0.0.1:11434",
-            "max_steps": 10,
-            "max_retries_per_step": 2,
-            "step_timeout": 30.0,
+            "model": _setting("router.model", "llama-3.2-1b-cz-router:latest"),
+            "ollama_url": _setting("ollama.url", "http://127.0.0.1:11434"),
+            "max_steps": _setting("max.steps", 10),
+            "max_retries_per_step": _setting("max.retries", 2),
+            "step_timeout": _setting("step.timeout", 30.0),
             "use_mock_baf": False,
-            "allowed_domains": [],
-            "allowed_operations": ["navigate", "click", "extract", "evaluate", "wait", "screenshot"],
+            "allowed_domains": _setting("allowed.domains", []),
+            "allowed_operations": _setting("allowed.operations", ["navigate", "click", "extract", "wait", "screenshot"]),
         })
     
     return json.dumps({"status": "error", "message": f"Unknown config action: {action}"})
