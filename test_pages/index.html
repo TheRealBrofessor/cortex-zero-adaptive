@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test App - Main</title></head>
+<body>
+    <h1>Cortex Zero Adaptive Test Page</h1>
+    <div id="flag-container" data-flag="FLAG{NAV_ADAPTIVE_RECOVERY_2026}">Navigation Test Flag: FLAG{NAV_ADAPTIVE_RECOVERY_2026}</div>
+    <div id="content">Main content for extraction testing</div>
+    <button id="action-btn" onclick="handleClick()">Click Me</button>
+    <div id="click-result" style="display:none;">FLAG{CLICK_ADAPTATION_WORKS}</div>
+    <script>
+        function handleClick() {
+            document.getElementById('click-result').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

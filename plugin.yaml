@@ -1,0 +1,9 @@
+name: cortex-zero-adaptive
+version: 0.1.0
+description: Cortex Zero Adaptive — local 1B model directed adaptive browser automation with failure recovery (OBSERVE→REASON→SELECT→EXECUTE→ANALYZE→ADAPT→VERIFY)
+author: Professor
+provides_tools:
+  - cz_adaptive.run
+  - cz_adaptive.status
+  - cz_adaptive.demo
+  - cz_adaptive.config
